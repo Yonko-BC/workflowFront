@@ -12,7 +12,14 @@ export interface CustomNodeProps extends React.HTMLAttributes<HTMLDivElement> {
   showHandles?: boolean;
 }
 
-export type TNodeType = "start" | "end" | "validate";
+export type TNodeType =
+  | "start"
+  | "end"
+  | "validate"
+  | "approval"
+  | "notification"
+  | "condition"
+  | "documentGeneration";
 
 export type TNode = Node & {
   type: TNodeType;

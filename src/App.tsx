@@ -1,45 +1,72 @@
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import {
   ReactFlow,
   MiniMap,
   Controls,
   Background,
-  useNodesState,
-  useEdgesState,
-  addEdge,
   BackgroundVariant as C,
-  OnConnect,
   useReactFlow,
+  NodeChange,
+  EdgeChange,
+  Connection,
 } from "@xyflow/react";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState } from "./store/store";
+import {
+  updateNodes,
+  updateEdges,
+  addNode,
+  addEdge,
+} from "./store/workflowSlice";
 
 import { ValidateNode } from "./components/ValidateNode";
 import { EndNode } from "./components/EndNode";
 import { StartNode } from "./components/StartNode";
+import { ApprovalNode } from "./components/ApprovalNode";
+import { NotificationNode } from "./components/NotificationNode";
+import { ConditionNode } from "./components/ConditionNode";
+import { DocumentGenerationNode } from "./components/DocumentGenerationNode";
 
 import { TNodeType } from "./types";
-
-import { initialNodes, initialEdges } from "./initialData";
 
 const nodeTypes = {
   start: StartNode,
   end: EndNode,
   validate: ValidateNode,
+  approval: ApprovalNode,
+  notification: NotificationNode,
+  condition: ConditionNode,
+  documentGeneration: DocumentGenerationNode,
 } as const;
 
 export default function App() {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const [dragType, setDragType] = useState<TNodeType | null>(null);
+  const dispatch = useDispatch();
+  const { nodes, edges } = useSelector((state: RootState) => state.workflow);
   const { screenToFlowPosition } = useReactFlow();
 
-  const onConnect = useCallback<OnConnect>(
-    (params) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges]
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      dispatch(updateNodes(changes));
+    },
+    [dispatch]
+  );
+
+  const onEdgesChange = useCallback(
+    (changes: EdgeChange[]) => {
+      dispatch(updateEdges(changes));
+    },
+    [dispatch]
+  );
+
+  const onConnect = useCallback(
+    (connection: Connection) => {
+      dispatch(addEdge(connection));
+    },
+    [dispatch]
   );
 
   const handleDragStart = useCallback(
     (key: TNodeType) => (e: React.DragEvent) => {
-      setDragType(key);
       e.dataTransfer.effectAllowed = "move";
       e.dataTransfer.setData("application/reactflow", key);
     },
@@ -68,9 +95,9 @@ export default function App() {
         data: { label: `${type} Node` },
       };
 
-      setNodes((prevNodes) => [...prevNodes, newNode]);
+      dispatch(addNode(newNode));
     },
-    [nodes.length, screenToFlowPosition, setNodes]
+    [nodes.length, screenToFlowPosition, dispatch]
   );
 
   return (
@@ -85,7 +112,6 @@ export default function App() {
             <div>{key}</div>
           </button>
         ))}
-        <div className="mt-4 pt-4 border-t">{dragType}</div>
       </div>
       <ReactFlow
         nodes={nodes}
